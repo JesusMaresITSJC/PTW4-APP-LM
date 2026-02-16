@@ -36,4 +36,19 @@ router.get("/:id", (req, res) => {
     });
 });
 
+//actualizar usuario
+router.put("/:id", (req, res) => {
+    const id = req.params.id;
+    const { nombre, correo } = req.body;
+    console.log(req.body);
+    const sql = "UPDATE usuarios SET nombre = ?, correo = ? WHERE id = ?";
+    db.query(sql, [id, nombre, correo], (err, result) => {
+        if (err) return res.status(500).json(err);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+        }
+        res.json({ mensaje: "Usuario actualizado correctamente" });
+    });
+});
+
 module.exports = router;
