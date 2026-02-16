@@ -39,10 +39,13 @@ router.get("/:id", (req, res) => {
 //actualizar usuario
 router.put("/:id", (req, res) => {
     const id = req.params.id;
-    const { nombre, correo } = req.body;
-    console.log(req.body);
+    const nombre = req.body.nombre;
+    const correo = req.body.correo;
+    if (!nombre || !correo) {
+        return res.status(400).json({ mensaje: "Faltan datos (nombre o correo)" });
+    }
     const sql = "UPDATE usuarios SET nombre = ?, correo = ? WHERE id = ?";
-    db.query(sql, [id, nombre, correo], (err, result) => {
+    db.query(sql, [nombre, correo, id], (err, result) => {
         if (err) return res.status(500).json(err);
         if (result.affectedRows === 0) {
             return res.status(404).json({ mensaje: "Usuario no encontrado" });
@@ -50,5 +53,19 @@ router.put("/:id", (req, res) => {
         res.json({ mensaje: "Usuario actualizado correctamente" });
     });
 });
+
+//eliminar usuario
+router.delete("/:id", (req, res) => {
+    const id = req.params.id;
+    const sql = "DELETE FROM usuarios WHERE id = ?";
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json(err);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ mensaje: "Usuario no encontrado" });
+        }
+        res.json({ mensaje: "Usuario Eliminado correctamente" });
+    });
+});
+
 
 module.exports = router;
