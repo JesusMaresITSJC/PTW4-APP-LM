@@ -10,6 +10,7 @@ app.use(express.json());
 
 // Rutas
 app.use("/api/usuarios", require("./routes/usuarios.routes"));
+app.use("/api/auth", require("./routes/auth.routes"));
 
 // Puerto
 app.listen(3000, () => {
