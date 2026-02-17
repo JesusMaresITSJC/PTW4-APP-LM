@@ -1,4 +1,4 @@
-const db = require("../database");
+const db = require("../database/db");
 
 exports.getIdiomas = (req, res) => {
     const sql = "SELECT id_idioma, nombre, codigo_iso FROM idiomas";

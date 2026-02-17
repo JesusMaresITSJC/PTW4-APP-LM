@@ -1,3 +1,4 @@
+const db = require("../database/db");
 exports.getLeccionesPorIdioma = (req, res) => {
 
     const { idioma } = req.query;
