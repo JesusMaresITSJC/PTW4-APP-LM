@@ -3,6 +3,8 @@ const express = require("express");
 const cors = require("cors");
 const idiomasRoutes = require("./routes/idiomas.routes");
 const leccionesRoutes = require("./routes/lecciones.routes");
+const ejerciciosRoutes = require("./routes/ejercicios.routes");
+
 
 const app = express();
 
@@ -15,6 +17,7 @@ app.use("/api/usuarios", require("./routes/usuarios.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/idiomas", idiomasRoutes);
 app.use("/api/lecciones", leccionesRoutes);
+app.use("/api", ejerciciosRoutes);
 
 // Puerto
 app.listen(3000, () => {
