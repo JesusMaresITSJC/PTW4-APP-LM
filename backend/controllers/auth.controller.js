@@ -50,7 +50,11 @@ exports.login = async (req, res) => {
             }
             // Generar token
             const token = jwt.sign(
-                { id: usuario.id, correo: usuario.correo },
+                { 
+                    id: usuario.id,
+                    nombre: usuario.nombre,
+                    correo: usuario.correo
+                 },
                 SECRET_KEY,
                 { expiresIn: "1h" }
             );

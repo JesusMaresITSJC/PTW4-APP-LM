@@ -18,6 +18,8 @@ exports.getLeccionesPorIdioma = (req, res) => {
     });
 };
 
+
+
 exports.completarLeccion = (req, res) => {
 
     const id_usuario = req.usuario.id;
@@ -124,7 +126,7 @@ exports.responderLeccion = (req, res) => {
 
         const sqlGuardar = `
             INSERT INTO usuario_lecciones 
-            (id, id_leccion, completada, puntaje, fecha_completada)
+            (id_usuario, id_leccion, completada, puntaje, fecha_completada)
             VALUES (?, ?, TRUE, ?, CURDATE())
             ON DUPLICATE KEY UPDATE
                 completada = TRUE,

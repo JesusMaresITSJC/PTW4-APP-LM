@@ -1,0 +1,46 @@
+.barra-superior {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f2f2f2;
+  padding: 10px 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.barra-superior span {
+  font-weight: bold;
+}
+
+.barra-superior button {
+  background-color: #e74c3c;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.barra-superior button:hover {
+  background-color: #c0392b;
+}
+
+.idioma-card {
+    margin-bottom: 20px;
+}
+
+.barra {
+    width: 100%;
+    background: #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progreso {
+    height: 20px;
+    background: #4CAF50;
+    color: white;
+    text-align: center;
+    line-height: 20px;
+    font-size: 12px;
+}

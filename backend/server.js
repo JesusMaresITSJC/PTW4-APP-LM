@@ -18,6 +18,8 @@ app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/idiomas", idiomasRoutes);
 app.use("/api/lecciones", leccionesRoutes);
 app.use("/api", ejerciciosRoutes);
+app.use("/api/idiomas", require("./routes/idiomas.routes"));
+
 
 // Puerto
 app.listen(3000, () => {
