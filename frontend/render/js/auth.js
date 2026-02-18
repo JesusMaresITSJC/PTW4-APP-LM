@@ -59,6 +59,30 @@ async function initIdiomas() {
   }
 }
 
+async function verLecciones(idIdioma) {
+  const contenedor = document.getElementById("listaIdiomas");
+  contenedor.innerHTML = "Cargando lecciones...";
+
+  try {
+    const lecciones = await apiRequest(`/lecciones?idioma=${idIdioma}`);
+
+    contenedor.innerHTML = lecciones.map(leccion => `
+      <div class="card">
+        <h3>${leccion.titulo}</h3>
+        <p>${leccion.descripcion}</p>
+        <button onclick="iniciarLeccion(${leccion.id_leccion})">
+          Iniciar
+        </button>
+      </div>
+    `).join("");
+
+  } catch (error) {
+    console.error(error);
+    contenedor.innerHTML = "Error al cargar lecciones";
+  }
+}
+
+
 
 window.logout = logout;
 
