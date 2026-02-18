@@ -1,9 +1,35 @@
 let idiomaActual = null;
 
+/* =========================================
+   LOGIN
+   ========================================= */
 function initLogin() {
-  const btn = document.getElementById("loginBtn");
+  const app = document.getElementById("app");
 
-  btn.addEventListener("click", login);
+  app.innerHTML = `
+    <div class="login-wrapper">
+      <div class="login-logo">
+        <div class="logo-placeholder">🌍</div>
+      </div>
+      <h1 class="login-titulo">LinguaApp</h1>
+      <p class="login-subtitulo">Aprende idiomas de forma divertida</p>
+
+      <div class="login-card">
+        <div class="form-grupo">
+          <label for="correo">Correo</label>
+          <input type="email" id="correo" placeholder="tu@correo.com">
+        </div>
+        <div class="form-grupo">
+          <label for="password">Contraseña</label>
+          <input type="password" id="password" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary" id="loginBtn">Iniciar sesión</button>
+        <button class="btn btn-secondary" onclick="mostrarRegistro()">Crear cuenta</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("loginBtn").addEventListener("click", login);
 }
 
 async function login() {
@@ -17,9 +43,7 @@ async function login() {
 
   const response = await fetch("http://localhost:3000/api/auth/login", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ correo, password })
   });
 
@@ -27,32 +51,47 @@ async function login() {
 
   if (response.ok) {
     localStorage.setItem("token", data.token);
-    loadView("idiomas"); // 🔥 cambiamos vista dinámicamente
+    loadView("idiomas");
   } else {
     alert(data.mensaje);
   }
 }
 
+/* =========================================
+   REGISTRO
+   ========================================= */
 function mostrarRegistro() {
+  const app = document.getElementById("app");
 
-  const contenedor = document.getElementById("app");
+  app.innerHTML = `
+    <div class="login-wrapper">
+      <div class="login-logo">
+        <div class="logo-placeholder">🌍</div>
+      </div>
+      <h1 class="login-titulo">Crear cuenta</h1>
+      <p class="login-subtitulo">Únete y empieza a aprender hoy</p>
 
-  contenedor.innerHTML = `
-    <h2>Registro</h2>
-    <input type="email" id="nombreRegistro" placeholder="Nombre">
-    <input type="email" id="correoRegistro" placeholder="Correo">
-    <input type="password" id="passwordRegistro" placeholder="Contraseña">
-
-    <button onclick="register()">Crear cuenta</button>
-
-    <button onclick="loadView('login')">
-      Volver al login
-    </button>
+      <div class="login-card">
+        <div class="form-grupo">
+          <label for="nombreRegistro">Nombre</label>
+          <input type="text" id="nombreRegistro" placeholder="Tu nombre">
+        </div>
+        <div class="form-grupo">
+          <label for="correoRegistro">Correo</label>
+          <input type="email" id="correoRegistro" placeholder="tu@correo.com">
+        </div>
+        <div class="form-grupo">
+          <label for="passwordRegistro">Contraseña</label>
+          <input type="password" id="passwordRegistro" placeholder="••••••••">
+        </div>
+        <button class="btn btn-primary" onclick="register()">Crear cuenta</button>
+        <button class="btn btn-secondary" onclick="loadView('login')">Ya tengo cuenta</button>
+      </div>
+    </div>
   `;
 }
 
 async function register() {
-
   const nombre = document.getElementById("nombreRegistro").value;
   const correo = document.getElementById("correoRegistro").value;
   const password = document.getElementById("passwordRegistro").value;
@@ -63,12 +102,9 @@ async function register() {
   }
 
   try {
-
     const response = await fetch("http://localhost:3000/api/auth/register", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nombre, correo, password })
     });
 
@@ -81,41 +117,43 @@ async function register() {
 
     alert("Usuario registrado correctamente");
     loadView("login");
-
   } catch (error) {
     console.error(error);
     alert("Error al registrar usuario");
   }
 }
 
+/* =========================================
+   IDIOMAS (con progreso)
+   ========================================= */
 async function initIdiomas() {
   mostrarUsuario();
 
   const titulo = document.getElementById("tituloVista");
   const contenedor = document.getElementById("listaIdiomas");
 
-  titulo.textContent = "Idiomas disponibles";
+  titulo.textContent = "Elige un idioma";
   contenedor.innerHTML = "Cargando...";
 
   try {
     const idiomas = await apiRequest("/idiomas/progreso");
 
-    contenedor.innerHTML = idiomas.map(idioma => `
-      <div class="card">
-        <h3>${idioma.nombre}</h3>
-        <p>Código ISO: ${idioma.codigo_iso}</p>
-
-        <div class="barra">
-          <div class="progreso" style="width:${idioma.porcentaje ?? 0}%">
-            ${idioma.porcentaje ?? 0}%
+    contenedor.innerHTML = `<div class="grid-idiomas">${
+      idiomas.map(idioma => `
+        <div class="card">
+          <h3>${idioma.nombre}</h3>
+          <p>Código ISO: ${idioma.codigo_iso}</p>
+          <div class="barra">
+            <div class="progreso" style="width:${idioma.porcentaje ?? 0}%">
+              ${idioma.porcentaje ?? 0}%
+            </div>
           </div>
+          <button class="btn btn-primary" onclick="verLecciones(${idioma.id_idioma})">
+            Ver lecciones
+          </button>
         </div>
-
-        <button onclick="verLecciones(${idioma.id_idioma})">
-          Ver lecciones
-        </button>
-      </div>
-    `).join("");
+      `).join("")
+    }</div>`;
 
   } catch (error) {
     console.error(error);
@@ -123,88 +161,82 @@ async function initIdiomas() {
   }
 }
 
-
-
-
+/* =========================================
+   LECCIONES
+   ========================================= */
 async function verLecciones(idIdioma) {
-
   const titulo = document.getElementById("tituloVista");
   const contenedor = document.getElementById("listaIdiomas");
 
-  titulo.textContent = "Lecciones";
-
   idiomaActual = idIdioma;
+  titulo.textContent = "Lecciones";
   contenedor.innerHTML = "Cargando lecciones...";
 
   const lecciones = await apiRequest(`/lecciones?idioma=${idIdioma}`);
 
   contenedor.innerHTML = `
-    <button onclick="volverAIdiomas()">Volver</button>
-
-    ${lecciones.map(leccion => `
-      <div class="card">
-        <h3>${leccion.titulo}</h3>
-        <button onclick="iniciarLeccion(${leccion.id_leccion})">
-          Iniciar
-        </button>
-      </div>
-    `).join("")}
+    <button class="btn btn-volver" onclick="volverAIdiomas()">← Volver</button>
+    <div class="grid-lecciones">
+      ${lecciones.map(leccion => `
+        <div class="leccion-card">
+          <h3>${leccion.titulo}</h3>
+          <button class="btn btn-primary" onclick="iniciarLeccion(${leccion.id_leccion})">
+            Iniciar 🚀
+          </button>
+        </div>
+      `).join("")}
+    </div>
   `;
 }
-
 
 function volverAIdiomas() {
   initIdiomas();
 }
 
-
+/* =========================================
+   EJERCICIOS
+   ========================================= */
 async function iniciarLeccion(idLeccion) {
-
   const titulo = document.getElementById("tituloVista");
   const contenedor = document.getElementById("listaIdiomas");
 
-  titulo.textContent = "Ejercicios de la lección";
-
-  contenedor.innerHTML = "Cargando lección...";
+  titulo.textContent = "Ejercicios";
+  contenedor.innerHTML = "Cargando ejercicios...";
 
   const ejercicios = await apiRequest(`/lecciones/${idLeccion}/ejercicios`);
 
   contenedor.innerHTML = `
-    <button onclick="verLecciones(${idiomaActual})">
-      Volver
-    </button>
+    <button class="btn btn-volver" onclick="verLecciones(${idiomaActual})">← Volver</button>
 
     ${ejercicios.map(e => `
-      <div class="ejercicio">
+      <div class="ejercicio-wrapper">
         <h3>${e.pregunta}</h3>
-        ${e.opciones.map(o => `
-          <label>
-            <input type="radio"
-                   name="ejercicio_${e.id_ejercicio}"
-                   value="${o.id_opcion}">
-            ${o.texto}
-          </label><br>
-        `).join("")}
+        <div class="opciones-grid">
+          ${e.opciones.map(o => `
+            <label class="opcion-label">
+              <input type="radio" name="ejercicio_${e.id_ejercicio}" value="${o.id_opcion}">
+              ${o.texto}
+            </label>
+          `).join("")}
+        </div>
       </div>
     `).join("")}
 
-    <button onclick="enviarRespuestas(${idLeccion})">
-      Enviar respuestas
+    <button class="btn btn-enviar" onclick="enviarRespuestas(${idLeccion})">
+      Enviar respuestas ✅
     </button>
   `;
 }
 
-
 function volverALecciones() {
-  if (idiomaActual) {
-    verLecciones(idiomaActual);
-  }
+  if (idiomaActual) verLecciones(idiomaActual);
 }
 
-
+/* =========================================
+   ENVIAR RESPUESTAS
+   ========================================= */
 async function enviarRespuestas(idLeccion) {
-
-  const ejercicios = document.querySelectorAll(".ejercicio");
+  const ejercicios = document.querySelectorAll(".ejercicio-wrapper");
   const respuestas = [];
 
   ejercicios.forEach(ej => {
@@ -223,13 +255,10 @@ async function enviarRespuestas(idLeccion) {
   try {
     const resultado = await apiRequest(
       `/lecciones/${idLeccion}/responder`,
-      {
-        method: "POST",
-        body: JSON.stringify({ respuestas })
-      }
+      { method: "POST", body: JSON.stringify({ respuestas }) }
     );
 
-    alert(`Puntaje: ${resultado.puntaje}%`);
+    alert(`🎉 Puntaje: ${resultado.puntaje}% | Aciertos: ${resultado.aciertos}/${resultado.totalPreguntas}`);
 
   } catch (error) {
     console.error(error);
@@ -237,66 +266,30 @@ async function enviarRespuestas(idLeccion) {
   }
 }
 
+/* =========================================
+   LOGOUT / UTILS
+   ========================================= */
 function logout() {
   localStorage.removeItem("token");
   loadView("login");
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-
+function mostrarUsuario() {
   const token = localStorage.getItem("token");
+  if (!token) return;
 
+  const payload = JSON.parse(atob(token.split(".")[1]));
+  const span = document.getElementById("usuarioNombre");
+  if (span) span.textContent = payload.nombre;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const token = localStorage.getItem("token");
   if (token) {
     loadView("idiomas");
   } else {
     loadView("login");
   }
-
 });
 
-function mostrarUsuario() {
-
-  const token = localStorage.getItem("token");
-  if (!token) return;
-
-  const payload = JSON.parse(atob(token.split(".")[1]));
-  console.log("Payload del token:", payload);
-
-  const span = document.getElementById("usuarioNombre");
-
-  if (span) {
-    span.textContent = `Bienvenido, ${payload.nombre}`;
-  }
-}
-/*
-async function cargarIdiomas() {
-    const token = localStorage.getItem("token");
-
-    const response = await fetch("http://localhost:3000/api/idiomas/progreso", {
-        headers: {
-            "Authorization": "Bearer " + token
-        }
-    });
-
-    const idiomas = await response.json();
-
-    const contenedor = document.getElementById("listaIdiomas");
-    contenedor.innerHTML = "";
-
-    idiomas.forEach(idioma => {
-        contenedor.innerHTML += `
-            <div class="idioma-card">
-                <h3>${idioma.nombre}</h3>
-                <div class="barra">
-                    <div class="progreso" style="width:${idioma.porcentaje}%">
-                        ${idioma.porcentaje}%
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-}
-*/
-
 window.logout = logout;
-
