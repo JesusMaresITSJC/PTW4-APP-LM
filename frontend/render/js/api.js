@@ -1,20 +1,29 @@
 const API_URL = "http://localhost:3000/api";
 
-async function apiRequest(endpoint, method = "GET", body = null) {
-  const options = {
-    method,
+async function apiRequest(endpoint, options = {}) {
+
+  const token = localStorage.getItem("token");
+
+  const config = {
+    method: options.method || "GET",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": "Bearer " + localStorage.getItem("token")
-    }
+      "Authorization": `Bearer ${token}`
+    },
+    body: options.body || null
   };
 
-  if (body) {
-    options.body = JSON.stringify(body);
+  const response = await fetch(
+    `http://localhost:3000/api${endpoint}`,
+    config
+  );
+
+  if (!response.ok) {
+    throw new Error(`Error ${response.status}`);
   }
 
-  const response = await fetch(API_URL + endpoint, options);
   return response.json();
 }
+
 
 window.apiRequest = apiRequest;
