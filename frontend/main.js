@@ -10,7 +10,7 @@ function createWindow() {
     }
   });
 
-  win.loadFile('index.html');
+  win.loadFile('./render/index.html');
 
   win.webContents.openDevTools();
 
