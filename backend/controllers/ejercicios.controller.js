@@ -43,28 +43,4 @@ exports.getEjerciciosPorLeccion = (req, res) => {
     });
 };
 
-exports.completarLeccion = (req, res) => {
-    const id_usuario = req.usuario.id;
-    const { id } = req.params;
-    const { puntaje } = req.body;
-    if (puntaje === undefined) {
-        return res.status(400).json({ mensaje: "Debe enviar el puntaje" });
-    }
-    const sql = `
-        INSERT INTO usuario_lecciones 
-        (id_usuario, id_leccion, completada, puntaje, fecha_completada)
-        VALUES (?, ?, TRUE, ?, CURDATE())
-        ON DUPLICATE KEY UPDATE
-            completada = TRUE,
-            puntaje = VALUES(puntaje),
-            fecha_completada = CURDATE()
-    `;
-    db.query(sql, [id_usuario, id, puntaje], (err) => {
-        if (err) return res.status(500).json(err);
-        res.json({
-            mensaje: "Lección completada correctamente",
-            puntaje
-        });
-    });
-};
 
