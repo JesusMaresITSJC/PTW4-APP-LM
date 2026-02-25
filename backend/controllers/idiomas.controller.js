@@ -15,6 +15,7 @@ exports.getProgresoIdiomas = (req, res) => {
     const sql = `
         SELECT 
             i.id_idioma,
+            i.codigo_iso,
             i.nombre,
             COUNT(l.id_leccion) AS total_lecciones,
             COUNT(ul.id_leccion) AS completadas,

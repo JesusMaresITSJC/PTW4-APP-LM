@@ -5,7 +5,6 @@ const idiomasRoutes = require("./routes/idiomas.routes");
 const leccionesRoutes = require("./routes/lecciones.routes");
 const ejerciciosRoutes = require("./routes/ejercicios.routes");
 
-
 const app = express();
 
 // Middlewares
