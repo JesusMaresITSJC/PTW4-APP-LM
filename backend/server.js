@@ -4,6 +4,7 @@ const cors = require("cors");
 const idiomasRoutes = require("./routes/idiomas.routes");
 const leccionesRoutes = require("./routes/lecciones.routes");
 const ejerciciosRoutes = require("./routes/ejercicios.routes");
+const adminRoutes = require("./routes/admin.routes");
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use("/api/idiomas", idiomasRoutes);
 app.use("/api/lecciones", leccionesRoutes);
 app.use("/api", ejerciciosRoutes);
 app.use("/api/idiomas", require("./routes/idiomas.routes"));
+app.use("/api/admin", adminRoutes);
 
 
 // Puerto

@@ -32,39 +32,57 @@ exports.register = async (req, res) => {
 // LOGIN
 exports.login = async (req, res) => {
     const { correo, password } = req.body;
+
     if (!correo || !password) {
         return res.status(400).json({ mensaje: "Faltan datos" });
     }
+
     try {
         const sql = "SELECT * FROM usuarios WHERE correo = ?";
-        db.query(sql,[correo], async (err, result) => {
+        
+        db.query(sql, [correo], async (err, result) => {
             if (err) return res.status(500).json(err);
+
             if (result.length === 0) {
                 return res.status(400).json({ mensaje: "Credenciales incorrectas" });
             }
+
             const usuario = result[0];
-            // Comparar contraseña
+
+            if (!usuario.activo) {
+                return res.status(403).json({ mensaje: "Usuario desactivado" });
+            }
+
             const passwordValido = await bcrypt.compare(password, usuario.password_hash);
+
             if (!passwordValido) {
                 return res.status(400).json({ mensaje: "Credenciales incorrectas" });
             }
-            // Generar token
+
             const token = jwt.sign(
                 { 
                     id: usuario.id,
                     nombre: usuario.nombre,
-                    correo: usuario.correo
-                 },
+                    correo: usuario.correo,
+                    rol: usuario.rol   // 🔥 IMPORTANTE
+                },
                 SECRET_KEY,
                 { expiresIn: "1h" }
             );
+
             res.json({
                 mensaje: "Login exitoso",
-                token
+                token,
+                usuario: {
+                    id: usuario.id,
+                    nombre: usuario.nombre,
+                    correo: usuario.correo,
+                    rol: usuario.rol
+                }
             });
         });
+
     } catch (error) {
         res.status(500).json({ mensaje: "Error en el servidor" });
     }
 };
-

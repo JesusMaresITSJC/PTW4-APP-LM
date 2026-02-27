@@ -16,3 +16,10 @@ exports.verificarToken = (req, res, next) => {
         return res.status(403).json({ mensaje: "Token inválido" });
     }
 };
+
+exports.verificarAdmin = (req, res, next) => {
+    if (!req.usuario || req.usuario.rol !== "admin") {
+        return res.status(403).json({ mensaje: "Solo administradores pueden acceder" });
+    }
+    next();
+};

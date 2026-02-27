@@ -32,6 +32,8 @@ function initLogin() {
   document.getElementById("loginBtn").addEventListener("click", login);
 }
 
+
+//login
 async function login() {
   const correo = document.getElementById("correo").value;
   const password = document.getElementById("password").value;
@@ -50,12 +52,23 @@ async function login() {
   const data = await response.json();
 
   if (response.ok) {
-    localStorage.setItem("token", data.token);
-    loadView("idiomas");
+    const token = data.token;   // ✅ Declaramos token
+    localStorage.setItem("token", token);
+
+    const payload = JSON.parse(atob(token.split(".")[1]));
+
+    if (payload.rol === "admin") {
+      loadView("adminDashboard");
+    } else {
+      loadView("idiomas");
+    }
+
   } else {
-    alert(data.mensaje);
+    alert(data.mensaje || "Error al iniciar sesión");
   }
 }
+
+
 
 /* =========================================
    REGISTRO
@@ -291,5 +304,135 @@ document.addEventListener("DOMContentLoaded", () => {
     loadView("login");
   }
 });
+
+
+//panel de administracion admin
+function initAdminDashboard() {
+  mostrarUsuario();
+
+  const titulo = document.getElementById("tituloVista");
+  const menu = document.getElementById("adminMenu");
+  const contenido = document.getElementById("adminContenido");
+
+  titulo.textContent = "Panel de Administración";
+
+  // Menú dinámico
+  menu.innerHTML = `
+    <button class="btn btn-primary" onclick="cargarAdminSeccion('idiomas')">Idiomas</button>
+    <button class="btn btn-primary" onclick="cargarAdminSeccion('lecciones')">Lecciones</button>
+    <button class="btn btn-primary" onclick="cargarAdminSeccion('ejercicios')">Ejercicios</button>
+    <button class="btn btn-primary" onclick="cargarAdminSeccion('usuarios')">Usuarios</button>
+  `;
+
+  contenido.innerHTML = "Selecciona una sección";
+}
+
+async function cargarAdminSeccion(seccion) {
+  const contenido = document.getElementById("adminContenido");
+
+  contenido.innerHTML = "Cargando...";
+
+  switch (seccion) {
+    case "idiomas":
+      const idiomas = await apiRequest("/idiomas");
+
+  contenido.innerHTML = `
+    <button class="btn btn-success" onclick="mostrarFormularioIdioma()">
+      + Nuevo Idioma
+    </button>
+
+    <div id="formularioAdmin"></div>
+
+    ${idiomas.map(i => `
+      <div class="card">
+        <h3>${i.nombre}</h3>
+        <p>Código: ${i.codigo_iso}</p>
+        <button class="btn btn-warning" onclick="editarIdioma(${i.id_idioma}, '${i.nombre}', '${i.codigo_iso}')">Editar</button>
+        <button class="btn btn-danger" onclick="eliminarIdioma(${i.id_idioma})">Eliminar</button>
+      </div>
+    `).join("")}
+  `;
+  break;
+
+    case "usuarios":
+      const usuarios = await apiRequest("/admin/usuarios");
+      contenido.innerHTML = usuarios.map(u => `
+        <div class="card">
+          <h3>${u.nombre}</h3>
+          <p>${u.correo}</p>
+          <p>Rol: ${u.rol}</p>
+        </div>
+      `).join("");
+      break;
+
+    default:
+      contenido.innerHTML = "Sección no implementada";
+  }
+}
+
+
+//crud admin.
+function mostrarFormularioIdioma() {
+  const form = document.getElementById("formularioAdmin");
+
+  form.innerHTML = `
+    <div class="card">
+      <h3>Nuevo Idioma</h3>
+      <input type="text" id="nuevoNombre" placeholder="Nombre">
+      <input type="text" id="nuevoCodigo" placeholder="Código ISO">
+      <button class="btn btn-primary" onclick="crearIdioma()">Guardar</button>
+    </div>
+  `;
+}
+
+async function crearIdioma() {
+  const nombre = document.getElementById("nuevoNombre").value;
+  const codigo_iso = document.getElementById("nuevoCodigo").value;
+
+  await apiRequest("/idiomas", {
+    method: "POST",
+    body: JSON.stringify({ nombre, codigo_iso })
+  });
+
+  cargarAdminSeccion("idiomas");
+}
+
+function editarIdioma(id, nombre, codigo) {
+  const form = document.getElementById("formularioAdmin");
+
+  form.innerHTML = `
+    <div class="card">
+      <h3>Editar Idioma</h3>
+      <input type="text" id="editNombre" value="${nombre}">
+      <input type="text" id="editCodigo" value="${codigo}">
+      <button class="btn btn-primary" onclick="guardarEdicionIdioma(${id})">
+        Actualizar
+      </button>
+    </div>
+  `;
+}
+
+async function guardarEdicionIdioma(id) {
+  const nombre = document.getElementById("editNombre").value;
+  const codigo_iso = document.getElementById("editCodigo").value;
+
+  await apiRequest(`/idiomas/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ nombre, codigo_iso })
+  });
+
+  cargarAdminSeccion("idiomas");
+}
+
+async function eliminarIdioma(id) {
+  if (!confirm("¿Seguro que deseas eliminar este idioma?")) return;
+
+  await apiRequest(`/idiomas/${id}`, {
+    method: "DELETE"
+  });
+
+  cargarAdminSeccion("idiomas");
+}
+
 
 window.logout = logout;
