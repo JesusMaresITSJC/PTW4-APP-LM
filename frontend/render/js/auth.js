@@ -222,36 +222,45 @@ function volverAIdiomas() {
    EJERCICIOS
    ========================================= */
 async function iniciarLeccion(idLeccion) {
-  const titulo = document.getElementById("tituloVista");
-  const contenedor = document.getElementById("listaIdiomas");
+    const titulo = document.getElementById("tituloVista");
+    const contenedor = document.getElementById("listaIdiomas");
 
-  titulo.textContent = "Ejercicios";
-  contenedor.innerHTML = "Cargando ejercicios...";
+    titulo.textContent = "Ejercicios";
+    contenedor.innerHTML = "Cargando ejercicios...";
 
-  const ejercicios = await apiRequest(`/ejercicios?leccion=${idLeccion}`);
+    let ejercicios;
+    try {
+        // Cambié la ruta por la que ya funciona
+        ejercicios = await apiRequest(`/ejercicios/leccion/${idLeccion}/usuario`);
+    } catch (err) {
+        console.error("Error al cargar ejercicios", err);
+        contenedor.innerHTML = `<p>Error al cargar ejercicios: ${err.message}</p>`;
+        return;
+    }
 
-  contenedor.innerHTML = `
-    <button class="btn btn-volver" onclick="verLecciones(${idiomaActual})">← Volver</button>
+    contenedor.innerHTML = `
+        <button class="btn btn-volver" onclick="verLecciones(${idiomaActual})">← Volver</button>
 
-    ${ejercicios.map(e => `
-      <div class="ejercicio-wrapper">
-        <h3>${e.pregunta}</h3>
-        <div class="opciones-grid">
-          ${e.opciones.map(o => `
-            <label class="opcion-label">
-              <input type="radio" name="ejercicio_${e.id_ejercicio}" value="${o.id_opcion}">
-              ${o.texto}
-            </label>
-          `).join("")}
-        </div>
-      </div>
-    `).join("")}
+        ${ejercicios.map(e => `
+            <div class="ejercicio-wrapper">
+                <h3>${e.pregunta}</h3>
+                <div class="opciones-grid">
+                    ${e.opciones.map(o => `
+                        <label class="opcion-label">
+                            <input type="radio" name="ejercicio_${e.id_ejercicio}" value="${o.id_opcion}">
+                            ${o.texto}
+                        </label>
+                    `).join("")}
+                </div>
+            </div>
+        `).join("")}
 
-    <button class="btn btn-enviar" onclick="enviarRespuestas(${idLeccion})">
-      Enviar respuestas ✅
-    </button>
-  `;
+        <button class="btn btn-enviar" onclick="enviarRespuestas(${idLeccion})">
+            Enviar respuestas ✅
+        </button>
+    `;
 }
+
 
 function volverALecciones() {
   if (idiomaActual) verLecciones(idiomaActual);

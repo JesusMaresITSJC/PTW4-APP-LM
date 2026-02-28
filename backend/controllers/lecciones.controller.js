@@ -1,18 +1,19 @@
 const db = require("../database/db");
 
-exports.getLeccionesPorIdioma = (req, res) => {
+exports.getLecciones = (req, res) => {
     const { idioma } = req.query;
-    if (!idioma) {
-        return res.status(400).json({ mensaje: "Debe enviar el id del idioma" });
+
+    let sql;
+    let params = [];
+
+    if (idioma) {
+        sql = "SELECT * FROM lecciones WHERE id_idioma = ? ORDER BY id_leccion ASC";
+        params = [idioma];
+    } else {
+        sql = "SELECT * FROM lecciones ORDER BY id_leccion ASC";
     }
-    const sql = `
-        SELECT id_leccion, titulo, descripcion, orden
-        FROM lecciones
-        WHERE id_idioma = ?
-        AND activo = 1
-        ORDER BY orden ASC
-    `;
-    db.query(sql, [idioma], (err, results) => {
+
+    db.query(sql, params, (err, results) => {
         if (err) return res.status(500).json(err);
         res.json(results);
     });

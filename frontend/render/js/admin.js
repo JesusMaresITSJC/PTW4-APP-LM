@@ -82,7 +82,7 @@ async function cargarAdminSeccion(seccion) {
 
                 // Agregamos listeners después de generar el HTML dinámicamente
                 document.getElementById("btnNuevoUsuario")
-                    .addEventListener("click", mostrarFormularioUsuario);
+                    .addEventListener("click", () => mostrarFormularioUsuario());
 
                 document.querySelectorAll(".btnEditar").forEach(btn => {
                     btn.addEventListener("click", (e) => {
@@ -153,23 +153,8 @@ async function cargarAdminSeccion(seccion) {
 
         //sig 
         case "ejercicios":
-            const leccionesEj = await apiRequest("/lecciones");
-
-            contenido.innerHTML = `
-    <h3>Seleccionar Lección</h3>
-
-    <select id="selectLeccion" onchange="cargarEjerciciosPorLeccion()">
-      <option value="">-- Selecciona una lección --</option>
-      ${leccionesEj.map(l => `
-        <option value="${l.id_leccion}">
-          ${l.titulo}
-        </option>
-      `).join("")}
-    </select>
-
-    <div id="ejerciciosAdmin"></div>
-  `;
-            break;
+    await cargarLecciones(); // Esto genera el <select> y prepara el CRUD
+    break;
 
         //sig
 
@@ -311,7 +296,7 @@ async function crearLeccion() {
     };
 
     try {
-        await apiRequest("/lecciones/admin", {
+        await apiRequest("/lecciones", {
             method: "POST",
             body: JSON.stringify(data)
         });
@@ -337,7 +322,7 @@ async function editarLeccion(id, id_idioma, titulo, descripcion, orden, activo) 
     `).join("");
 
         // Opciones de orden: máximo 20 o basado en número actual de lecciones
-        const lecciones = await apiRequest("/lecciones/admin/all");
+        const lecciones = await apiRequest(`/lecciones?idioma=${id_idioma}`);
         const maxOrden = lecciones.length > 0 ? Math.max(...lecciones.map(l => l.orden)) : 0;
         const ordenOptions = [...Array(maxOrden + 1)].map((_, i) => `
       <option value="${i + 1}" ${i + 1 === orden ? "selected" : ""}>${i + 1}</option>
@@ -423,45 +408,104 @@ window.eliminarLeccion = eliminarLeccion;
 // EJERCICIOS + OPCIONES (CRUD COMPLETO)
 // =============================
 
+// =============================
+// Variables globales
+// =============================
 window.editarOpciones = [];
 
 // =============================
-// Mostrar formulario para crear un nuevo ejercicio
+// Cargar lecciones y mostrar select
+// =============================
+async function cargarLecciones() {
+    const contenido = document.getElementById("adminContenido");
+
+    let lecciones;
+    try {
+        lecciones = await apiRequest("/lecciones"); // Trae todas las lecciones
+    } catch (err) {
+        console.error("No se pudieron cargar las lecciones", err);
+        contenido.innerHTML = "<p>Error al cargar las lecciones</p>";
+        return;
+    }
+
+    contenido.innerHTML = `
+        <h3>Seleccionar Lección</h3>
+        <select id="selectLeccion" onchange="cargarEjerciciosPorLeccion()">
+            <option value="">-- Selecciona una lección --</option>
+            ${lecciones.map(l => `<option value="${l.id_leccion}">${l.titulo}</option>`).join("")}
+        </select>
+        <div id="ejerciciosAdmin"></div>
+        <div id="formularioAdmin"></div>
+    `;
+}
+
+// =============================
+// Cargar ejercicios según lección seleccionada
+// =============================
+async function cargarEjerciciosPorLeccion() {
+    const select = document.getElementById("selectLeccion");
+    const id_leccion = select?.value;
+    const contenedor = document.getElementById("ejerciciosAdmin");
+
+    if (!id_leccion) {
+        contenedor.innerHTML = "<p>Selecciona una lección</p>";
+        return;
+    }
+
+    let ejercicios;
+    try {
+        ejercicios = await apiRequest(`/ejercicios/leccion/${id_leccion}`);
+    } catch (err) {
+        console.error("No se pudieron cargar los ejercicios", err);
+        contenedor.innerHTML = "<p>Error al cargar los ejercicios</p>";
+        return;
+    }
+
+    contenedor.innerHTML = `
+        <button class="btn btn-success" onclick="mostrarFormularioEjercicio(${id_leccion})">
+            + Nuevo Ejercicio
+        </button>
+        <div id="formularioAdmin"></div>
+        ${ejercicios.map(e => `
+            <div class="card">
+                <h3>${e.pregunta}</h3>
+                <p>Orden: ${e.orden}</p>
+                <p>Opciones: ${e.opciones.map(o => `${o.texto} ${o.es_correcta ? "✅" : ""}`).join(", ")}</p>
+                <button class="btn btn-warning" onclick="mostrarFormularioEditarEjercicio(${e.id_ejercicio})">Editar</button>
+                <button class="btn btn-danger" onclick="eliminarEjercicio(${e.id_ejercicio})">Eliminar</button>
+            </div>
+        `).join("")}
+    `;
+}
+
+// =============================
+// Mostrar formulario para crear nuevo ejercicio
 // =============================
 function mostrarFormularioEjercicio(id_leccion) {
     const form = document.getElementById("formularioAdmin");
-
-    // Inicializamos opciones vacías
-    window.editarOpciones = [];
+    window.editarOpciones = []; // reinicia opciones
 
     form.innerHTML = `
-    <div class="card">
-      <h3>Nuevo Ejercicio (Opción múltiple)</h3>
-
-      <label>Pregunta</label>
-      <textarea id="preguntaEj"></textarea>
-
-      <label>Explicación</label>
-      <textarea id="explicacionEj"></textarea>
-
-      <label>Orden</label>
-      <input type="number" id="ordenEj">
-
-      <hr>
-      <h4>Opciones</h4>
-      <div id="opcionesContainerEdit"></div>
-
-      <input type="text" id="textoOpcionEdit" placeholder="Nueva opción">
-      <label>
-        Correcta
-        <input type="checkbox" id="correctaOpcionEdit">
-      </label>
-      <button class="btn btn-success" onclick="agregarOpcionEditar()">Agregar Opción</button>
-
-      <hr>
-      <button class="btn btn-primary" onclick="crearEjercicioConOpciones(${id_leccion})">Guardar</button>
-    </div>
-  `;
+        <div class="card">
+            <h3>Nuevo Ejercicio (Opción múltiple)</h3>
+            <label>Pregunta</label>
+            <textarea id="preguntaEj"></textarea>
+            <label>Explicación</label>
+            <textarea id="explicacionEj"></textarea>
+            <label>Orden</label>
+            <input type="number" id="ordenEj">
+            <hr>
+            <h4>Opciones</h4>
+            <div id="opcionesContainerEdit"></div>
+            <input type="text" id="textoOpcionEdit" placeholder="Nueva opción">
+            <label>
+                Correcta <input type="checkbox" id="correctaOpcionEdit">
+            </label>
+            <button class="btn btn-success" onclick="agregarOpcionEditar()">Agregar Opción</button>
+            <hr>
+            <button class="btn btn-primary" onclick="crearEjercicioConOpciones(${id_leccion})">Guardar</button>
+        </div>
+    `;
 
     renderOpcionesEditar();
 }
@@ -472,23 +516,21 @@ function mostrarFormularioEjercicio(id_leccion) {
 function renderOpcionesEditar() {
     const container = document.getElementById("opcionesContainerEdit");
     container.innerHTML = window.editarOpciones.map((o, i) => `
-    <div>
-      ${o.texto} ${o.es_correcta ? "✅" : ""}
-      <button class="btn btn-danger" onclick="eliminarOpcionEditar(${i})">X</button>
-    </div>
-  `).join("");
+        <div>
+            ${o.texto} ${o.es_correcta ? "✅" : ""}
+            <button class="btn btn-danger" onclick="eliminarOpcionEditar(${i})">X</button>
+        </div>
+    `).join("");
 }
 
 // =============================
-// Agregar opción (nuevo o edición)
+// Agregar opción
 // =============================
 function agregarOpcionEditar() {
     const texto = document.getElementById("textoOpcionEdit").value.trim();
     const es_correcta = document.getElementById("correctaOpcionEdit").checked ? 1 : 0;
 
     if (!texto) return alert("El texto de la opción no puede estar vacío");
-
-    // Solo una correcta
     if (es_correcta && window.editarOpciones.some(o => o.es_correcta)) {
         return alert("Solo puede haber una opción correcta");
     }
@@ -500,7 +542,7 @@ function agregarOpcionEditar() {
 }
 
 // =============================
-// Eliminar opción temporal o existente
+// Eliminar opción
 // =============================
 function eliminarOpcionEditar(index) {
     window.editarOpciones.splice(index, 1);
@@ -519,67 +561,16 @@ async function crearEjercicioConOpciones(id_leccion) {
     if (!window.editarOpciones.length) return alert("Agrega al menos una opción");
     if (!window.editarOpciones.some(o => o.es_correcta)) return alert("Marca cuál opción es correcta");
 
-    const data = {
-        id_leccion,
-        tipo: "opcion_multiple",
-        pregunta,
-        explicacion,
-        orden,
-        opciones: window.editarOpciones
-    };
+    const data = { id_leccion, tipo: "opcion_multiple", pregunta, explicacion, orden, opciones: window.editarOpciones };
 
-    await apiRequest("/ejercicios/con-opciones", {
-        method: "POST",
-        body: JSON.stringify(data)
-    });
+    await apiRequest("/ejercicios/con-opciones", { method: "POST", body: JSON.stringify(data) });
 
     alert("Ejercicio creado correctamente");
     cargarEjerciciosPorLeccion();
 }
 
 // =============================
-// Cargar ejercicios por lección
-// =============================
-async function cargarEjerciciosPorLeccion() {
-    const select = document.getElementById("selectLeccion");
-    const id_leccion = select.value;
-    const contenedor = document.getElementById("ejerciciosAdmin");
-
-    if (!id_leccion) {
-        contenedor.innerHTML = "<p>Selecciona una lección</p>";
-        return;
-    }
-
-    let ejercicios;
-    try {
-        ejercicios = await apiRequest(`/ejercicios/leccion/${id_leccion}`);
-    } catch (err) {
-        console.error("No se pudieron cargar los ejercicios", err);
-        contenedor.innerHTML = "<p>Error al cargar los ejercicios</p>";
-        return;
-    }
-
-    contenedor.innerHTML = `
-    <button class="btn btn-success" onclick="mostrarFormularioEjercicio(${id_leccion})">
-      + Nuevo Ejercicio
-    </button>
-    <div id="formularioAdmin"></div>
-
-    ${ejercicios.map(e => `
-      <div class="card">
-        <h3>${e.pregunta}</h3>
-        <p>Orden: ${e.orden}</p>
-        <p>Opciones: ${e.opciones.map(o => `${o.texto} ${o.es_correcta ? "✅" : ""}`).join(", ")}</p>
-
-        <button class="btn btn-warning" onclick="mostrarFormularioEditarEjercicio(${e.id_ejercicio})">Editar</button>
-        <button class="btn btn-danger" onclick="eliminarEjercicio(${e.id_ejercicio})">Eliminar</button>
-      </div>
-    `).join("")}
-  `;
-}
-
-// =============================
-// Editar ejercicio con opciones
+// Editar ejercicio
 // =============================
 async function mostrarFormularioEditarEjercicio(id_ejercicio) {
     const form = document.getElementById("formularioAdmin");
@@ -589,50 +580,39 @@ async function mostrarFormularioEditarEjercicio(id_ejercicio) {
         ejercicio = await apiRequest(`/ejercicios/${id_ejercicio}`);
         opciones = await apiRequest(`/opciones/ejercicio/${id_ejercicio}`);
     } catch (err) {
-        console.error("Error al cargar ejercicio u opciones", err);
+        console.error(err);
         return alert("No se pudo cargar el ejercicio");
     }
 
-    window.editarOpciones = opciones.map(o => ({
-        id_opcion: o.id_opcion,
-        texto: o.texto,
-        es_correcta: o.es_correcta
-    }));
+    window.editarOpciones = opciones.map(o => ({ id_opcion: o.id_opcion, texto: o.texto, es_correcta: o.es_correcta }));
 
     form.innerHTML = `
-    <div class="card">
-      <h3>Editar Ejercicio</h3>
-
-      <label>Pregunta</label>
-      <textarea id="preguntaEjEdit">${ejercicio.pregunta}</textarea>
-
-      <label>Explicación</label>
-      <textarea id="explicacionEjEdit">${ejercicio.explicacion ?? ""}</textarea>
-
-      <label>Orden</label>
-      <input type="number" id="ordenEjEdit" value="${ejercicio.orden}">
-
-      <hr>
-      <h4>Opciones</h4>
-      <div id="opcionesContainerEdit"></div>
-
-      <input type="text" id="textoOpcionEdit" placeholder="Nueva opción">
-      <label>
-        Correcta
-        <input type="checkbox" id="correctaOpcionEdit">
-      </label>
-      <button class="btn btn-success" onclick="agregarOpcionEditar()">Agregar Opción</button>
-
-      <hr>
-      <button class="btn btn-primary" onclick="guardarEdicionEjercicioConOpciones(${id_ejercicio})">Guardar Cambios</button>
-    </div>
-  `;
+        <div class="card">
+            <h3>Editar Ejercicio</h3>
+            <label>Pregunta</label>
+            <textarea id="preguntaEjEdit">${ejercicio.pregunta}</textarea>
+            <label>Explicación</label>
+            <textarea id="explicacionEjEdit">${ejercicio.explicacion ?? ""}</textarea>
+            <label>Orden</label>
+            <input type="number" id="ordenEjEdit" value="${ejercicio.orden}">
+            <hr>
+            <h4>Opciones</h4>
+            <div id="opcionesContainerEdit"></div>
+            <input type="text" id="textoOpcionEdit" placeholder="Nueva opción">
+            <label>
+                Correcta <input type="checkbox" id="correctaOpcionEdit">
+            </label>
+            <button class="btn btn-success" onclick="agregarOpcionEditar()">Agregar Opción</button>
+            <hr>
+            <button class="btn btn-primary" onclick="guardarEdicionEjercicioConOpciones(${id_ejercicio})">Guardar Cambios</button>
+        </div>
+    `;
 
     renderOpcionesEditar();
 }
 
 // =============================
-// Guardar edición de ejercicio y opciones
+// Guardar edición de ejercicio
 // =============================
 async function guardarEdicionEjercicioConOpciones(id_ejercicio) {
     const pregunta = document.getElementById("preguntaEjEdit").value.trim();
@@ -643,43 +623,24 @@ async function guardarEdicionEjercicioConOpciones(id_ejercicio) {
     if (!window.editarOpciones.length) return alert("Agrega al menos una opción");
     if (!window.editarOpciones.some(o => o.es_correcta)) return alert("Marca cuál opción es correcta");
 
-    // Obtener id_leccion y tipo del ejercicio existente
     const ejercicio = await apiRequest(`/ejercicios/${id_ejercicio}`);
-
-    const data = {
-        id_leccion: ejercicio.id_leccion,
-        tipo: ejercicio.tipo,
-        pregunta,
-        explicacion,
-        orden
-    };
+    const data = { id_leccion: ejercicio.id_leccion, tipo: ejercicio.tipo, pregunta, explicacion, orden };
 
     try {
-        // Actualizar ejercicio
-        await apiRequest(`/ejercicios/${id_ejercicio}`, {
-            method: "PUT",
-            body: JSON.stringify(data)
-        });
+        await apiRequest(`/ejercicios/${id_ejercicio}`, { method: "PUT", body: JSON.stringify(data) });
 
-        // Actualizar opciones
         for (const op of window.editarOpciones) {
             if (op.id_opcion) {
-                await apiRequest(`/opciones/${op.id_opcion}`, {
-                    method: "PUT",
-                    body: JSON.stringify({ texto: op.texto, es_correcta: op.es_correcta })
-                });
+                await apiRequest(`/opciones/${op.id_opcion}`, { method: "PUT", body: JSON.stringify({ texto: op.texto, es_correcta: op.es_correcta }) });
             } else {
-                await apiRequest("/opciones", {
-                    method: "POST",
-                    body: JSON.stringify({ id_ejercicio, texto: op.texto, es_correcta: op.es_correcta })
-                });
+                await apiRequest("/opciones", { method: "POST", body: JSON.stringify({ id_ejercicio, texto: op.texto, es_correcta: op.es_correcta }) });
             }
         }
 
         alert("Ejercicio y opciones actualizados correctamente");
         cargarEjerciciosPorLeccion();
     } catch (err) {
-        console.error("Error al guardar la edición", err);
+        console.error(err);
         alert("Error al guardar la edición");
     }
 }
@@ -689,15 +650,14 @@ async function guardarEdicionEjercicioConOpciones(id_ejercicio) {
 // =============================
 async function eliminarEjercicio(id) {
     if (!confirm("¿Eliminar ejercicio?")) return;
-
     await apiRequest(`/ejercicios/${id}`, { method: "DELETE" });
-
     cargarEjerciciosPorLeccion();
 }
 
 // =============================
 // Exponer funciones globales
 // =============================
+window.cargarLecciones = cargarLecciones;
 window.cargarEjerciciosPorLeccion = cargarEjerciciosPorLeccion;
 window.mostrarFormularioEjercicio = mostrarFormularioEjercicio;
 window.mostrarFormularioEditarEjercicio = mostrarFormularioEditarEjercicio;
@@ -855,7 +815,7 @@ async function actualizarUsuario(id, event) {
             body: JSON.stringify({ nombre, correo, rol, password })
         });
         alert("Usuario actualizado correctamente");
-        cargarUsuariosAdmin(); 
+        cargarUsuariosAdmin();
         document.getElementById("formularioUsuario").innerHTML = "";
     } catch (error) {
         alert("Error al actualizar usuario: " + error.message);

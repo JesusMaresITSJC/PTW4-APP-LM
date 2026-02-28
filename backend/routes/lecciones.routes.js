@@ -6,15 +6,17 @@ const { verificarToken, verificarAdmin } = require("../middleware/auth.middlewar
 // =============================
 // USUARIOS (solo consultar lecciones por idioma)
 // =============================
-router.get("/", verificarToken, leccionesController.getLeccionesPorIdioma);
+router.get("/", verificarToken, leccionesController.getLecciones);
 router.post("/:id/responder", verificarToken, leccionesController.responderLeccion);
 
 // =============================
 // ADMIN (crear, editar, eliminar lecciones)
 // =============================
+router.get("/admin/all", verificarToken, verificarAdmin, leccionesController.getAllLeccionesAdmin);
+router.get("/admin/:id", verificarToken, verificarAdmin, leccionesController.getLeccionById);
 router.post("/", verificarToken, verificarAdmin, leccionesController.createLeccion);
-router.put("/:id", verificarToken, verificarAdmin, leccionesController.updateLeccion);
-router.delete("/:id", verificarToken, verificarAdmin, leccionesController.deleteLeccion);
+router.put("/admin/:id", verificarToken, verificarAdmin, leccionesController.updateLeccion);
+router.delete("/admin/:id", verificarToken, verificarAdmin, leccionesController.deleteLeccion);
 
 
 

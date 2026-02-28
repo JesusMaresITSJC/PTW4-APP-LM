@@ -1,7 +1,7 @@
 const db = require("../database/db");
 
 exports.getEjerciciosPorLeccion = (req, res) => {
-    const id_leccion = req.query.leccion;
+    const id_leccion = req.query.id;
     if (!id_leccion) return res.status(400).json({ mensaje: "Debe enviar id de lección" });
 
     const sql = `
@@ -51,6 +51,48 @@ exports.getAllEjercicios = (req, res) => {
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json(err);
         res.json(results);
+    });
+};
+
+// =============================
+// Obtener ejercicios de una lección para usuario
+// =============================
+// Para usuarios normales
+exports.getEjerciciosPorLeccionUsuario = (req, res) => {
+    const { id } = req.params;
+
+    if (!id) return res.status(400).json({ mensaje: "Debe enviar id de lección" });
+
+    const sqlEjercicios = `
+        SELECT * 
+        FROM ejercicios 
+        WHERE id_leccion = ? 
+        ORDER BY orden ASC
+    `;
+
+    db.query(sqlEjercicios, [id], (err, ejercicios) => {
+        if (err) return res.status(500).json(err);
+
+        // Traemos las opciones de cada ejercicio
+        const ids = ejercicios.map(e => e.id_ejercicio);
+        if (ids.length === 0) return res.json([]);
+
+        const sqlOpciones = `
+            SELECT * FROM opciones
+            WHERE id_ejercicio IN (?)
+            ORDER BY id_opcion ASC
+        `;
+
+        db.query(sqlOpciones, [ids], (err2, opciones) => {
+            if (err2) return res.status(500).json(err2);
+
+            // Asignamos las opciones a cada ejercicio
+            ejercicios.forEach(e => {
+                e.opciones = opciones.filter(o => o.id_ejercicio === e.id_ejercicio);
+            });
+
+            res.json(ejercicios);
+        });
     });
 };
 
@@ -235,7 +277,47 @@ exports.createEjercicioConOpciones = (req, res) => {
     });
 };
 
+exports.getEjerciciosPorLeccionAdmin = (req, res) => {
+    const id_leccion = req.params.id;
+    if (!id_leccion) return res.status(400).json({ mensaje: "Debe enviar id de lección" });
 
+    const sql = `
+        SELECT 
+            e.id_ejercicio, e.tipo, e.pregunta, e.explicacion, e.orden,
+            o.id_opcion, o.texto, o.es_correcta
+        FROM ejercicios e
+        LEFT JOIN opciones o ON e.id_ejercicio = o.id_ejercicio
+        WHERE e.id_leccion = ?
+        ORDER BY e.orden ASC, o.id_opcion ASC
+    `;
+
+    db.query(sql, [id_leccion], (err, results) => {
+        if (err) return res.status(500).json(err);
+
+        const mapEjercicios = {};
+        results.forEach(r => {
+            if (!mapEjercicios[r.id_ejercicio]) {
+                mapEjercicios[r.id_ejercicio] = {
+                    id_ejercicio: r.id_ejercicio,
+                    tipo: r.tipo,
+                    pregunta: r.pregunta,
+                    explicacion: r.explicacion,
+                    orden: r.orden,
+                    opciones: []
+                };
+            }
+            if (r.id_opcion) {
+                mapEjercicios[r.id_ejercicio].opciones.push({
+                    id_opcion: r.id_opcion,
+                    texto: r.texto,
+                    es_correcta: r.es_correcta
+                });
+            }
+        });
+
+        res.json(Object.values(mapEjercicios));
+    });
+};
 
 
 
