@@ -1,34 +1,41 @@
 const API_URL = "http://localhost:3000/api";
 
 async function apiRequest(endpoint, options = {}) {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
 
-  const config = {
-    method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` })
-    },
-    body: options.body || null
-  };
+    // Configuración base
+    const config = {
+        method: options.method || "GET",
+        headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` })
+        }
+    };
 
-  const response = await fetch(`${API_URL}${endpoint}`, config);
+    // Solo agregamos body si existe y no es GET
+    if (options.body && config.method !== "GET") {
+        // Asegurarnos que sea string JSON
+        config.body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
+    }
 
-  // Solo parsear JSON si hay contenido
-  const text = await response.text();
-  let data;
-  try {
-    data = text ? JSON.parse(text) : null;
-  } catch (e) {
-    console.error("No se pudo parsear JSON:", text);
-    throw new Error("Respuesta inválida del servidor");
-  }
+    try {
+        const response = await fetch(`${API_URL}${endpoint}`, config);
 
-  if (!response.ok) {
-    throw new Error(data?.mensaje || `Error ${response.status}`);
-  }
+        // Parseamos el texto solo si hay contenido
+        const text = await response.text();
+        let data = text ? JSON.parse(text) : null;
 
-  return data;
+        // Si la respuesta no es OK, lanzamos un error con mensaje del backend
+        if (!response.ok) {
+            throw new Error(data?.mensaje || `Error ${response.status}`);
+        }
+
+        return data;
+    } catch (error) {
+        console.error("Error en apiRequest:", error);
+        throw error; // lo propagamos al frontend
+    }
 }
 
+// Hacemos global la función
 window.apiRequest = apiRequest;

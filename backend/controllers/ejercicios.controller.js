@@ -1,45 +1,44 @@
 const db = require("../database/db");
 
 exports.getEjerciciosPorLeccion = (req, res) => {
-    const { id } = req.params;
+    const id_leccion = req.query.leccion;
+    if (!id_leccion) return res.status(400).json({ mensaje: "Debe enviar id de lección" });
+
     const sql = `
         SELECT 
-            e.id_ejercicio,
-            e.tipo,
-            e.pregunta,
-            e.explicacion,
-            e.orden,
-            o.id_opcion,
-            o.texto
+            e.id_ejercicio, e.tipo, e.pregunta, e.explicacion, e.orden,
+            o.id_opcion, o.texto, o.es_correcta
         FROM ejercicios e
-        LEFT JOIN opciones o 
-            ON e.id_ejercicio = o.id_ejercicio
+        LEFT JOIN opciones o ON e.id_ejercicio = o.id_ejercicio
         WHERE e.id_leccion = ?
         ORDER BY e.orden ASC, o.id_opcion ASC
     `;
-    db.query(sql, [id], (err, results) => {
+
+    db.query(sql, [id_leccion], (err, results) => {
         if (err) return res.status(500).json(err);
-        const ejerciciosMap = {};
-        results.forEach(row => {
-            if (!ejerciciosMap[row.id_ejercicio]) {
-                ejerciciosMap[row.id_ejercicio] = {
-                    id_ejercicio: row.id_ejercicio,
-                    tipo: row.tipo,
-                    pregunta: row.pregunta,
-                    explicacion: row.explicacion,
-                    orden: row.orden,
+
+        const mapEjercicios = {};
+        results.forEach(r => {
+            if (!mapEjercicios[r.id_ejercicio]) {
+                mapEjercicios[r.id_ejercicio] = {
+                    id_ejercicio: r.id_ejercicio,
+                    tipo: r.tipo,
+                    pregunta: r.pregunta,
+                    explicacion: r.explicacion,
+                    orden: r.orden,
                     opciones: []
                 };
             }
-            if (row.id_opcion) {
-                ejerciciosMap[row.id_ejercicio].opciones.push({
-                    id_opcion: row.id_opcion,
-                    texto: row.texto
+            if (r.id_opcion) {
+                mapEjercicios[r.id_ejercicio].opciones.push({
+                    id_opcion: r.id_opcion,
+                    texto: r.texto,
+                    es_correcta: r.es_correcta
                 });
             }
         });
-        const ejercicios = Object.values(ejerciciosMap);
-        res.json(ejercicios);
+
+        res.json(Object.values(mapEjercicios));
     });
 };
 
