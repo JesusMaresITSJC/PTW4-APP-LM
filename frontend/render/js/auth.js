@@ -305,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-
+/*
 //panel de administracion admin
 function initAdminDashboard() {
   mostrarUsuario();
@@ -433,6 +433,6 @@ async function eliminarIdioma(id) {
 
   cargarAdminSeccion("idiomas");
 }
-
+*/
 
 window.logout = logout;

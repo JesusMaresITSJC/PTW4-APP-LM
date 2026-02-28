@@ -38,3 +38,54 @@ exports.getProgresoIdiomas = (req, res) => {
     });
 };
 
+exports.getIdiomaById = (req, res) => {
+    const sql = "SELECT id_idioma, nombre, codigo_iso FROM idiomas WHERE id_idioma = ?";
+
+    db.query(sql, [req.params.id], (err, results) => {
+        if (err) return res.status(500).json(err);
+
+        if (results.length === 0) {
+            return res.status(404).json({ mensaje: "Idioma no encontrado" });
+        }
+
+        res.json(results[0]);
+    });
+};
+
+exports.createIdioma = (req, res) => {
+    const { nombre, codigo_iso } = req.body;
+
+    const sql = "INSERT INTO idiomas (nombre, codigo_iso) VALUES (?, ?)";
+
+    db.query(sql, [nombre, codigo_iso], (err, result) => {
+        if (err) return res.status(500).json(err);
+
+        res.status(201).json({ mensaje: "Idioma creado correctamente" });
+    });
+};
+
+exports.updateIdioma = (req, res) => {
+    const { nombre, codigo_iso } = req.body;
+
+    const sql = `
+        UPDATE idiomas 
+        SET nombre = ?, codigo_iso = ?
+        WHERE id_idioma = ?
+    `;
+
+    db.query(sql, [nombre, codigo_iso, req.params.id], (err, result) => {
+        if (err) return res.status(500).json(err);
+
+        res.json({ mensaje: "Idioma actualizado correctamente" });
+    });
+};
+
+exports.deleteIdioma = (req, res) => {
+    const sql = "DELETE FROM idiomas WHERE id_idioma = ?";
+
+    db.query(sql, [req.params.id], (err, result) => {
+        if (err) return res.status(500).json(err);
+
+        res.json({ mensaje: "Idioma eliminado correctamente" });
+    });
+};

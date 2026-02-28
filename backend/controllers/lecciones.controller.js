@@ -150,3 +150,85 @@ exports.responderLeccion = (req, res) => {
 
     });
 };
+
+exports.getAllLeccionesAdmin = (req, res) => {
+
+    const sql = `
+        SELECT id_leccion, id_idioma, titulo, descripcion, orden, activo
+        FROM lecciones
+        ORDER BY id_idioma, orden ASC
+    `;
+
+    db.query(sql, (err, results) => {
+        if (err) return res.status(500).json(err);
+        res.json(results);
+    });
+};
+
+exports.getLeccionById = (req, res) => {
+
+    const sql = `
+        SELECT id_leccion, id_idioma, titulo, descripcion, orden, activo
+        FROM lecciones
+        WHERE id_leccion = ?
+    `;
+
+    db.query(sql, [req.params.id], (err, results) => {
+        if (err) return res.status(500).json(err);
+
+        if (results.length === 0) {
+            return res.status(404).json({ mensaje: "Lección no encontrada" });
+        }
+
+        res.json(results[0]);
+    });
+};
+
+exports.createLeccion = (req, res) => {
+
+    const { id_idioma, titulo, descripcion, orden } = req.body;
+
+    const sql = `
+        INSERT INTO lecciones 
+        (id_idioma, titulo, descripcion, orden, activo)
+        VALUES (?, ?, ?, ?, 1)
+    `;
+
+    db.query(sql, [id_idioma, titulo, descripcion, orden], (err) => {
+        if (err) return res.status(500).json(err);
+
+        res.status(201).json({ mensaje: "Lección creada correctamente" });
+    });
+};
+
+exports.updateLeccion = (req, res) => {
+
+    const { id_idioma, titulo, descripcion, orden, activo } = req.body;
+
+    const sql = `
+        UPDATE lecciones
+        SET id_idioma = ?, titulo = ?, descripcion = ?, orden = ?, activo = ?
+        WHERE id_leccion = ?
+    `;
+
+    db.query(sql, [id_idioma, titulo, descripcion, orden, activo, req.params.id], (err) => {
+        if (err) return res.status(500).json(err);
+
+        res.json({ mensaje: "Lección actualizada correctamente" });
+    });
+};
+
+exports.deleteLeccion = (req, res) => {
+  const sql = `
+    DELETE FROM lecciones
+    WHERE id_leccion = ?
+  `;
+
+  db.query(sql, [req.params.id], (err, result) => {
+    if (err) return res.status(500).json({ mensaje: "Error al eliminar la lección", error: err });
+    if (result.affectedRows === 0) return res.status(404).json({ mensaje: "Lección no encontrada" });
+
+    res.status(204).send(); // Lección eliminada, sin contenido
+  });
+};
+
